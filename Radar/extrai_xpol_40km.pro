@@ -1,10 +1,14 @@
+;if !version.os_family eq 'Windows' then cd,'C:\Users\hp\OneDrive - usp.br\Iniciação Científica\Radar\Radar'
+
 @rsl_anyformat_to_radar.pro
 @load_nav_polar_novimet.pro
+
+;load_nav_polar_novimet,xpol_rlon,xpol_rlat
 
 dir_data  = 'MVOL/'
 dir_out = 'Out_XPOL/'
 
-fileradar = findfile(dir_data + '*',count=p1)
+fileradar = findfile(dir_data + 'SAO*',count=p1)
 
 for ff=0,p1-1 do begin
 
@@ -12,7 +16,7 @@ for ff=0,p1-1 do begin
    
    print,file
       
-   radar=rsl_anyformat_to_radar(file)
+   radar=rsl_anyformat_to_radar(file,/quiet)
 
    ano = radar.h.year
    mes = radar.h.month
@@ -24,15 +28,16 @@ for ff=0,p1-1 do begin
    yymmdd$ = string(ano,format='(i04)') + '-' + string(mes,format='(i02)') + "-" + string(dia,format='(i02)')
    hh$ = string(hora,format='(i02)')
    mi$ = string(minuto,format='(i02)')
+   sec$ = string(segundo,format='(i02)')
 
-   print,ano,mes,dia,hora,minuto
+   print,ano,mes,dia,hora,minuto,segundo
 
    fileout = dir_out + '/xpol_' + $
-             yymmdd$ + '_' + hh$ + mi$ +'.idl'
+             yymmdd$ + '_' + hh$ + mi$ + sec$ + '.idl'
 
 ;header = radar.volume.sweep.ray.h
    variaveis=radar.volume.h.field_type 
-   print,variaveis
+   ;print,variaveis
 ;DZ DR PH RH VR SW (refletividade, zdr, phidp, rhohv,radial, largura)
 
    lat_radar = float(radar.h.latd) + float(radar.h.latm)/60. + float(radar.h.lats)/3600. 
@@ -66,7 +71,8 @@ for ff=0,p1-1 do begin
    
    volscan_dbz_clean = fltarr(nazim(0,1)+1,nbins)
    volscan_vel_clean = fltarr(nazim(0,1)+1,nbins)
-
+   volscan_zdr_clean = fltarr(nazim(0,1)+1,nbins)
+   volscan_kdp_clean = fltarr(nazim(0,1)+1,nbins)
 
    for ii=0,nbins-1 do begin
       for jj=0,359 do begin 
@@ -112,17 +118,18 @@ for ff=0,p1-1 do begin
          if lixo_rain ge 0.1 then begin
             volscan_dbz_clean(ipos,jpos) = volscan_dbz(ipos,jpos)
             volscan_vel_clean(ipos,jpos) = volscan_vel(ipos,jpos)
+            volscan_zdr_clean(ipos,jpos) = volscan_zdr(ipos,jpos)
+            volscan_kdp_clean(ipos,jpos) = volscan_kdp(ipos,jpos)
          endif 
          ii=ii+1L
       endwhile
    endif
 
-   lixo = fltarr(361,600)
-   lixo(*,*) = volscan_dbz_clean(*,0:599) ; gravando 45 km
-   save,lixo,filename=fileout
+;   lixo = fltarr(361,600)
+;   lixo(*,*) = volscan_dbz_clean(*,0:599) ; gravando 45 km
+;   save,lixo,filename=fileout
+  save,volscan_dbz_clean,volscan_vel_clean,volscan_zdr_clean,volscan_kdp_clean,filename=fileout,/compress
 
 endfor   
 
-
-
-end 
+end
